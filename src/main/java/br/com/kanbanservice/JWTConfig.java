@@ -1,5 +1,7 @@
 package br.com.kanbanservice;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.h2.H2ConsoleProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -21,6 +23,8 @@ import br.com.kanbanservice.seguranca.FiltroAutorizacaoJWT;
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(securedEnabled = true)
 public class JWTConfig extends WebSecurityConfigurerAdapter{
+	@Autowired
+	private H2ConsoleProperties console;
 
 	private static final String[] AUTH_WHITELIST = {
 			// -- Swagger UI v2
@@ -35,12 +39,21 @@ public class JWTConfig extends WebSecurityConfigurerAdapter{
 
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
+		
+		String path = this.console.getPath();
+		String antPattern = (path.endsWith("/") ? path + "*" : path + "/*");
+        HttpSecurity h2Console = http.antMatcher(antPattern);
+        h2Console.csrf().disable();
+        h2Console.httpBasic();
+        h2Console.headers().frameOptions().sameOrigin();
+        
 		http.cors().and()
 		.csrf().disable()
 		.authorizeRequests()
 		.antMatchers(AUTH_WHITELIST).permitAll()
 		.antMatchers("/autentica/login").permitAll()
 		.antMatchers("/usuario/inclui").permitAll()
+		.antMatchers("/h2/**").permitAll()
 		.anyRequest().authenticated()
 		.and()
 		.sessionManagement()
